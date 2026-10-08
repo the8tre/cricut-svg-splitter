@@ -1,5 +1,7 @@
 # cricut-svg-splitter
 
+## [▶ Open the app](https://the8tre.github.io/cricut-svg-splitter)
+
 A standalone web app that splits a paper-model SVG (unfolded 3D net) into two files ready for a Cricut machine:
 
 - **Cut file** — outer boundary + gluing tabs, filled solid blue (`#0A91B3`)
@@ -36,5 +38,5 @@ SVGs exported from the [Blender Export Paper Model add-on](https://extensions.bl
 
 | File | Description |
 |---|---|
-| `svg-splitter.html` | The application — single self-contained HTML file |
+| `index.html` | The application — single self-contained HTML file |
 | `Cube.svg` | Sample cube net for testing |
