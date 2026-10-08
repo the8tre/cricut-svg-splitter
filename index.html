@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SVG Splitter — Cricut Cut &amp; Emboss</title>
+<title>SVG Splitter — Cricut Cut &amp; Deboss</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; }
@@ -28,29 +28,7 @@
   #sample-btn { color: #0A91B3; }
   #sample-btn:hover { text-decoration: underline; }
 
-  #original-preview {
-    display: none;
-    margin: 0 1.5rem 1.5rem;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 1rem;
-  }
-  #original-preview h2 { font-size: 0.9rem; margin-bottom: 0.75rem; color: #444; }
-  #original-preview-box {
-    background: #f9f9f9;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 160px;
-    overflow: hidden;
-  }
-  #original-preview-box svg { max-width: 100%; max-height: 260px; }
-
   #results { display: none; margin: 0 1.5rem 2rem; }
-  #results h2 { font-size: 1rem; margin-bottom: 0.75rem; }
 
   .result-grid {
     display: grid;
@@ -65,7 +43,6 @@
     border: 1px solid #ddd;
     padding: 1rem;
   }
-  .result-card h3 { font-size: 0.9rem; margin-bottom: 0.5rem; }
   .result-card .badge {
     display: inline-block;
     font-size: 0.72rem;
@@ -77,7 +54,7 @@
   }
   .badge.original { background: #f5f5f5; color: #555; }
   .badge.cut { background: #fde8e8; color: #c0392b; }
-  .badge.emboss { background: #e8f4fd; color: #1a6fa3; }
+  .badge.deboss { background: #e8f4fd; color: #1a6fa3; }
   .badge.cricut { background: #e8fdf4; color: #0A91B3; }
 
   .preview-box {
@@ -108,7 +85,7 @@
   }
   .download-btn:hover { opacity: 0.85; }
   .download-btn.cut { background: #c0392b; color: #fff; }
-  .download-btn.emboss { background: #1a6fa3; color: #fff; }
+  .download-btn.deboss { background: #1a6fa3; color: #fff; }
   .download-btn.cricut { background: #0A91B3; color: #fff; }
   .cricut-card { margin-top: 1rem; }
 
@@ -169,12 +146,12 @@
   <svg viewBox="0 0 16 16" aria-hidden="true" fill="#ffffff"><path fill="#ffffff" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
 </a>
 
-<h1>SVG Splitter — Cricut Cut &amp; Emboss</h1>
-<p class="subtitle">Splits a paper-model SVG into a cut file and an emboss file with identical page coordinates.</p>
+<h1>SVG Splitter — Cricut Cut &amp; Deboss</h1>
+<p class="subtitle">Splits a paper-model SVG into a cut file and an deboss file with identical page coordinates.</p>
 
 <div id="drop-zone">
   <p>Drop your SVG here, click to browse or <a id="sample-btn" href="#">load a sample</a></p>
-  <p class="hint">Reads class attributes: <code>outer</code>, <code>sticker</code> → cut &nbsp;|&nbsp; <code>convex</code>, <code>concave</code> → emboss</p>
+  <p class="hint">Reads class attributes: <code>outer</code>, <code>sticker</code> → cut &nbsp;|&nbsp; <code>convex</code>, <code>concave</code> → deboss</p>
   <input type="file" id="file-input" accept=".svg,image/svg+xml">
 </div>
 
@@ -191,8 +168,8 @@
       <div class="preview-box" id="cut-preview"></div>
     </div>
     <div class="result-card">
-      <div class="badge emboss">EMBOSS</div>
-      <div class="preview-box" id="emboss-preview"></div>
+      <div class="badge deboss">DEBOSS</div>
+      <div class="preview-box" id="deboss-preview"></div>
     </div>
   </div>
   <div class="result-card cricut-card">
@@ -204,10 +181,11 @@
 
 <script>
 const CUT_CLASSES    = new Set(['outer', 'outer_background', 'sticker']);
-const EMBOSS_CLASSES = new Set(['convex', 'concave']);
+const DEBOSS_CLASSES = new Set(['convex', 'concave']);
 const DROP_CLASSES   = new Set(['freestyle', 'inner_background', 'arrow']);
 
 const BRAND_COLOR = '#0A91B3';
+const _blobUrls = new Map(); // track blob URLs by id for revocation
 
 const dropZone  = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -324,8 +302,10 @@ sampleBtn.addEventListener('click', e => { e.preventDefault(); split('Cube.svg',
 
 function showOriginalPreview(filename, svgText) {
   const box = document.getElementById('original-preview-box');
+  if (_blobUrls.has('original-preview')) URL.revokeObjectURL(_blobUrls.get('original-preview'));
   const blob = new Blob([svgText], { type: 'image/svg+xml' });
   const url  = URL.createObjectURL(blob);
+  _blobUrls.set('original-preview', url);
   box.innerHTML = '';
   const img = document.createElement('img');
   img.src = url;
@@ -349,7 +329,7 @@ function classifyElement(el) {
   const cls = getElementClass(el);
   if (!cls) return null;
   if (CUT_CLASSES.has(cls))    return 'cut';
-  if (EMBOSS_CLASSES.has(cls)) return 'emboss';
+  if (DEBOSS_CLASSES.has(cls)) return 'deboss';
   if (DROP_CLASSES.has(cls))   return 'drop';
   if (el.tagName === 'text' || el.tagName === 'tspan') return 'drop';
   return 'drop';
@@ -361,7 +341,7 @@ function parseStickerSubpaths(dAttr) {
   // Returns array of point arrays, one per M...Z subpath.
   // Only handles absolute M / L / Z commands (as produced by paper-model generators).
   const subpaths = [];
-  const re = /M\s*([\d.\s]+(?:L\s*[\d.\s]+)*)\s*Z/g;
+  const re = /M\s*([-\d.\s]+(?:L\s*[-\d.\s]+)*)\s*Z/g;
   let m;
   while ((m = re.exec(dAttr)) !== null) {
     const nums = m[1].trim().split(/[ML\s]+/).filter(Boolean);
@@ -500,14 +480,14 @@ function split(filename, svgText) {
     if (!m) return val;
     return (parseFloat(m[1]) / 25.4).toFixed(4) + 'in';
   }
-  const widthPx  = mmToIn(width)  || width;
-  const heightPx = mmToIn(height) || height;
+  const widthIn  = mmToIn(width)  || width;
+  const heightIn = mmToIn(height) || height;
 
   const styleEl   = svgRoot.querySelector('style');
   const styleText = styleEl ? styleEl.textContent : '';
 
   const cutNodes    = [];
-  const embossNodes = [];
+  const debossNodes = [];
   const extraNodes  = [];
   const droppedClasses = new Set();
 
@@ -516,14 +496,14 @@ function split(filename, svgText) {
   let outerDAttr   = null;
 
   function walkGroup(groupEl) {
-    const cutChildren = [], embossChildren = [], extraChildren = [];
+    const cutChildren = [], debossChildren = [], extraChildren = [];
     for (const child of Array.from(groupEl.children)) {
       const tag = child.tagName.toLowerCase();
       if (tag === 'style') continue;
       if (tag === 'g') {
         const [cc, ec, xc] = walkGroup(child);
         if (cc.length > 0) { const g = child.cloneNode(false); cc.forEach(n => g.appendChild(n)); cutChildren.push(g); }
-        if (ec.length > 0) { const g = child.cloneNode(false); ec.forEach(n => g.appendChild(n)); embossChildren.push(g); }
+        if (ec.length > 0) { const g = child.cloneNode(false); ec.forEach(n => g.appendChild(n)); debossChildren.push(g); }
         if (xc.length > 0) { const g = child.cloneNode(false); xc.forEach(n => g.appendChild(n)); extraChildren.push(g); }
         continue;
       }
@@ -533,14 +513,14 @@ function split(filename, svgText) {
         if (cls === 'sticker') stickerDAttr = child.getAttribute('d') || '';
         if (cls === 'outer')   outerDAttr   = child.getAttribute('d') || '';
         cutChildren.push(child.cloneNode(true));
-      } else if (decision === 'emboss') {
-        embossChildren.push(child.cloneNode(true));
+      } else if (decision === 'deboss') {
+        debossChildren.push(child.cloneNode(true));
       } else {
         droppedClasses.add(getElementClass(child) || child.tagName);
         extraChildren.push(child.cloneNode(true));
       }
     }
-    return [cutChildren, embossChildren, extraChildren];
+    return [cutChildren, debossChildren, extraChildren];
   }
 
   for (const child of Array.from(svgRoot.children)) {
@@ -549,7 +529,7 @@ function split(filename, svgText) {
     if (tag === 'g') {
       const [cc, ec, xc] = walkGroup(child);
       if (cc.length > 0) { const g = child.cloneNode(false); cc.forEach(n => g.appendChild(n)); cutNodes.push(g); }
-      if (ec.length > 0) { const g = child.cloneNode(false); ec.forEach(n => g.appendChild(n)); embossNodes.push(g); }
+      if (ec.length > 0) { const g = child.cloneNode(false); ec.forEach(n => g.appendChild(n)); debossNodes.push(g); }
       if (xc.length > 0) { const g = child.cloneNode(false); xc.forEach(n => g.appendChild(n)); extraNodes.push(g); }
     } else {
       const decision = classifyElement(child);
@@ -558,8 +538,8 @@ function split(filename, svgText) {
         if (cls === 'sticker') stickerDAttr = child.getAttribute('d') || '';
         if (cls === 'outer')   outerDAttr   = child.getAttribute('d') || '';
         cutNodes.push(child.cloneNode(true));
-      } else if (decision === 'emboss') {
-        embossNodes.push(child.cloneNode(true));
+      } else if (decision === 'deboss') {
+        debossNodes.push(child.cloneNode(true));
       } else {
         droppedClasses.add(cls || child.tagName);
         extraNodes.push(child.cloneNode(true));
@@ -569,87 +549,41 @@ function split(filename, svgText) {
 
   // ── Languette fold edges ──────────────────────────────────────────────────
   let languetteFoldPathStr = null;
-  let foldCount = 0;
   if (stickerDAttr && outerDAttr) {
     const subpaths          = parseStickerSubpaths(stickerDAttr);
     const outerPtSet        = parseOuterPoints(outerDAttr);
     const outerConsecPairs  = parseOuterConsecutivePairs(outerDAttr);
     const foldEdges         = extractLanguetteFoldEdges(subpaths, outerPtSet, outerConsecPairs);
-    foldCount               = foldEdges.length;
     languetteFoldPathStr    = buildLanguetteFoldPath(foldEdges);
   }
-
-  // ── Style with brand colour overrides ────────────────────────────────────
-  const cutColorOverride = `
-    path {
-        fill: ${BRAND_COLOR};
-    }
-    path.outer {
-        stroke: ${BRAND_COLOR};
-        fill: ${BRAND_COLOR};
-    }
-    path.outer_background {
-        stroke: ${BRAND_COLOR};
-        fill: ${BRAND_COLOR};
-    }
-    path.sticker {
-        fill: ${BRAND_COLOR};
-        stroke: none;
-    }`;
-
-  const embossExtraRule = `
-    path.languette_fold {
-        stroke: #000000;
-        stroke-dasharray: none;
-        stroke-dashoffset: 0;
-        stroke-width: 0.2;
-        stroke-opacity: 1.0;
-        fill: none;
-    }`;
-
-  const embossStyleOverride = `
-    path.convex {
-        stroke-dasharray: none;
-    }
-    path.concave {
-        stroke-dasharray: none;
-    }`;
-
-  const cutStyle    = buildStyle(styleText, [...CUT_CLASSES],    cutColorOverride);
-  const embossStyle = buildStyle(styleText, [...EMBOSS_CLASSES], embossExtraRule + embossStyleOverride);
 
   // ── Build SVG strings ─────────────────────────────────────────────────────
   // Cut: viewBox tight to path bbox + matching inch dimensions → Cricut shows correct physical size
   const cutResult  = mergeCutNodes(cutNodes, outerDAttr);
   const bb = cutResult.bbox;
   const cutViewBox   = bb ? `${bb.minX} ${bb.minY} ${bb.w} ${bb.h}` : viewBox;
-  const cutWidthIn   = bb ? (bb.w / 25.4).toFixed(4) + 'in' : widthPx;
-  const cutHeightIn  = bb ? (bb.h / 25.4).toFixed(4) + 'in' : heightPx;
+  const cutWidthIn   = bb ? (bb.w / 25.4).toFixed(4) + 'in' : widthIn;
+  const cutHeightIn  = bb ? (bb.h / 25.4).toFixed(4) + 'in' : heightIn;
   const cutSVG     = buildSVGString(xmlns, cutWidthIn, cutHeightIn, cutViewBox, '', cutResult.nodes, null);
 
-  // Emboss: same treatment — merge all segments (deduplicated), tight viewBox, inch dimensions
-  const embossResult = mergeEmbossNodes(embossNodes, languetteFoldPathStr);
-  const ebb = embossResult.bbox;
-  const embossViewBox  = ebb ? `${ebb.minX} ${ebb.minY} ${ebb.w} ${ebb.h}` : viewBox;
-  const embossWidthIn  = ebb ? (ebb.w / 25.4).toFixed(4) + 'in' : widthPx;
-  const embossHeightIn = ebb ? (ebb.h / 25.4).toFixed(4) + 'in' : heightPx;
-  const embossSVG  = buildSVGString(xmlns, embossWidthIn, embossHeightIn, embossViewBox, '', embossResult.nodes, null);
+  // Deboss: same treatment — merge all segments (deduplicated), tight viewBox, inch dimensions
+  const debossResult = mergeDebossNodes(debossNodes, languetteFoldPathStr);
+  const ebb = debossResult.bbox;
+  const debossViewBox  = ebb ? `${ebb.minX} ${ebb.minY} ${ebb.w} ${ebb.h}` : viewBox;
+  const debossWidthIn  = ebb ? (ebb.w / 25.4).toFixed(4) + 'in' : widthIn;
+  const debossHeightIn = ebb ? (ebb.h / 25.4).toFixed(4) + 'in' : heightIn;
+  const debossSVG  = buildSVGString(xmlns, debossWidthIn, debossHeightIn, debossViewBox, '', debossResult.nodes, null);
 
   const base        = filename.replace(/\.svg$/i, '');
-  const cricutSVG   = buildCricutSVG(cutSVG, cutResult.bbox, embossSVG, embossResult.bbox, extraNodes, styleText, viewBox);
+  const cricutSVG   = buildCricutSVG(cutSVG, cutResult.bbox, debossSVG, debossResult.bbox, extraNodes, styleText, viewBox);
 
   setupDownload('cricut-dl', base + '_cricut.svg', cricutSVG);
 
   setupPreview('cut-preview',    cutSVG);
-  setupPreview('emboss-preview', embossSVG);
+  setupPreview('deboss-preview', debossSVG);
   setupPreview('cricut-preview', cricutSVG);
 
   document.getElementById('results').style.display = 'block';
-}
-
-function countPaths(node) {
-  if (!node.querySelectorAll) return 1;
-  return node.querySelectorAll('path,rect,circle,ellipse,line,polyline,polygon').length || 1;
 }
 
 function parsePathPoints(dAttr) {
@@ -693,12 +627,12 @@ function mergeCutNodes(nodes, outerD) {
   return { nodes: [merged.querySelector('path')], bbox };
 }
 
-function mergeEmbossNodes(nodes, extraPathStr) {
-  // Collect all M...L segments from emboss paths + languette_fold, deduplicate, merge into one path.
+function mergeDebossNodes(nodes, extraPathStr) {
+  // Collect all M...L segments from deboss paths + languette_fold, deduplicate, merge into one path.
   function segKey(x1, y1, x2, y2) {
-    const a = [Math.round(x1*1e4)/1e4, Math.round(y1*1e4)/1e4];
-    const b = [Math.round(x2*1e4)/1e4, Math.round(y2*1e4)/1e4];
-    return a < b ? `${a}|${b}` : `${b}|${a}`;
+    const sa = `${Math.round(x1*1e4)/1e4},${Math.round(y1*1e4)/1e4}`;
+    const sb = `${Math.round(x2*1e4)/1e4},${Math.round(y2*1e4)/1e4}`;
+    return sa < sb ? `${sa}|${sb}` : `${sb}|${sa}`;
   }
   const seen = new Set();
   const segs = []; // [x1,y1,x2,y2]
@@ -748,7 +682,7 @@ function mergeEmbossNodes(nodes, extraPathStr) {
   return { nodes: [merged.querySelector('path')], bbox };
 }
 
-function buildCricutSVG(cutSVG, cutBBox, embossSVG, embossBBox, extraNodes, origStyleText, origViewBox) {
+function buildCricutSVG(cutSVG, cutBBox, debossSVG, debossBBox, extraNodes, origStyleText, origViewBox) {
   // All shapes share the same mm coordinate space (original viewBox).
   // Use original viewBox + inch dimensions for correct scale.
   const ser = new XMLSerializer();
@@ -779,10 +713,11 @@ function buildCricutSVG(cutSVG, cutBBox, embossSVG, embossBBox, extraNodes, orig
   if (extraNodes && extraNodes.length > 0) {
     const extraParts = extraNodes.map(n => ser.serializeToString(n));
     // Wrap with original style so text/freestyle render correctly
-    const styleBlock = origStyleText ? `<style type="text/css">${origStyleText}</style>` : '';
+    const safeStyle = origStyleText ? origStyleText.replace(/<\/style>/gi, '<\\/style>') : '';
+    const styleBlock = safeStyle ? `<style type="text/css">${safeStyle}</style>` : '';
     extraBody = `\n<g id="extra">${styleBlock}\n${extraParts.join('\n')}\n</g>`;
   }
-  const body  = extractPath(cutSVG) + '\n' + extractPathWithMinStroke(embossSVG, 1) + extraBody;
+  const body  = extractPath(cutSVG) + '\n' + extractPathWithMinStroke(debossSVG, 1) + extraBody;
   return `<?xml version='1.0' encoding='UTF-8' standalone='no'?>\n<svg xmlns="${xmlns}" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="${wIn}" height="${hIn}" viewBox="${vb}">\n${body}\n</svg>`;
 }
 
@@ -808,8 +743,10 @@ function buildSVGString(xmlns, width, height, viewBox, styleText, nodes, extraPa
 }
 
 function setupDownload(id, filename, content) {
+  if (_blobUrls.has(id)) URL.revokeObjectURL(_blobUrls.get(id));
   const blob = new Blob([content], { type: 'image/svg+xml' });
   const url  = URL.createObjectURL(blob);
+  _blobUrls.set(id, url);
   const a    = document.getElementById(id);
   a.href     = url;
   a.download = filename;
@@ -817,9 +754,15 @@ function setupDownload(id, filename, content) {
 
 function setupPreview(id, svgText) {
   const box = document.getElementById(id);
-  box.innerHTML = svgText;
-  const s = box.querySelector('svg');
-  if (s) { s.style.width = '100%'; s.style.height = 'auto'; s.style.maxHeight = '200px'; }
+  if (_blobUrls.has(id)) URL.revokeObjectURL(_blobUrls.get(id));
+  const blob = new Blob([svgText], { type: 'image/svg+xml' });
+  const url  = URL.createObjectURL(blob);
+  _blobUrls.set(id, url);
+  box.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = 'max-width:100%;max-height:200px;display:block;';
+  box.appendChild(img);
 }
 </script>
 </body>
