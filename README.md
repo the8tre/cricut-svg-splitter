@@ -1,6 +1,6 @@
 # cricut-svg-splitter
 
-## [▶ Open the app](https://the8tre.github.io/cricut-svg-splitter)
+## [▶ Open the app](https://the8tre.github.io/cricut-svg-splitter/index.html)
 
 A standalone web app that splits a paper-model SVG (unfolded 3D net) into two files ready for a Cricut machine:
 
