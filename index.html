@@ -569,12 +569,20 @@ function split(filename, svgText) {
   }
 
   // ── Build SVG strings ─────────────────────────────────────────────────────
-  // Use full page dimensions (A4) so Cricut shows correct size relative to input
-  const cutResult    = mergeCutNodes(cutNodes, outerDAttr);
-  const cutSVG       = buildSVGString(xmlns, widthIn, heightIn, viewBox, '', cutResult.nodes, null);
+  // Tight viewBox = path bbox + matching inch dimensions → Cricut shows correct physical size
+  const cutResult   = mergeCutNodes(cutNodes, outerDAttr);
+  const bb  = cutResult.bbox;
+  const cutViewBox  = bb  ? `${bb.minX} ${bb.minY} ${bb.w} ${bb.h}`   : viewBox;
+  const cutWidthIn  = bb  ? (bb.w  / 25.4).toFixed(4) + 'in' : widthIn;
+  const cutHeightIn = bb  ? (bb.h  / 25.4).toFixed(4) + 'in' : heightIn;
+  const cutSVG      = buildSVGString(xmlns, cutWidthIn, cutHeightIn, cutViewBox, '', cutResult.nodes, null);
 
-  const debossResult = mergeDebossNodes(debossNodes, languetteFoldPathStr);
-  const debossSVG    = buildSVGString(xmlns, widthIn, heightIn, viewBox, '', debossResult.nodes, null);
+  const debossResult  = mergeDebossNodes(debossNodes, languetteFoldPathStr);
+  const ebb = debossResult.bbox;
+  const debossViewBox  = ebb ? `${ebb.minX} ${ebb.minY} ${ebb.w} ${ebb.h}` : viewBox;
+  const debossWidthIn  = ebb ? (ebb.w / 25.4).toFixed(4) + 'in' : widthIn;
+  const debossHeightIn = ebb ? (ebb.h / 25.4).toFixed(4) + 'in' : heightIn;
+  const debossSVG      = buildSVGString(xmlns, debossWidthIn, debossHeightIn, debossViewBox, '', debossResult.nodes, null);
 
   const base        = filename.replace(/\.svg$/i, '');
   const cricutSVG   = buildCricutSVG(cutSVG, cutResult.bbox, debossSVG, debossResult.bbox, extraNodes, styleText, viewBox);
@@ -685,15 +693,27 @@ function mergeDebossNodes(nodes, extraPathStr) {
 }
 
 function buildCricutSVG(cutSVG, cutBBox, debossSVG, debossBBox, extraNodes, origStyleText, origViewBox) {
-  // All shapes share the same mm coordinate space (original viewBox).
-  // Use original viewBox + inch dimensions for correct scale.
   const ser = new XMLSerializer();
 
-  const vbParts = origViewBox ? origViewBox.trim().split(/\s+/).map(Number) : [0,0,210,297];
-  const vbW = vbParts[2], vbH = vbParts[3];
-  const vb  = origViewBox || '0 0 210 297';
-  const wIn = (vbW / 25.4).toFixed(4) + 'in';
-  const hIn = (vbH / 25.4).toFixed(4) + 'in';
+  // Use tight union bbox of cut + deboss so Cricut shows correct physical size
+  const bb1 = cutBBox, bb2 = debossBBox;
+  let vb, wIn, hIn;
+  if (bb1 || bb2) {
+    const b1 = bb1 || bb2, b2 = bb2 || bb1;
+    const minX = Math.min(b1.minX, b2.minX);
+    const minY = Math.min(b1.minY, b2.minY);
+    const maxX = Math.max(b1.minX + b1.w, b2.minX + b2.w);
+    const maxY = Math.max(b1.minY + b1.h, b2.minY + b2.h);
+    const w = maxX - minX, h = maxY - minY;
+    vb  = `${minX} ${minY} ${w} ${h}`;
+    wIn = (w / 25.4).toFixed(4) + 'in';
+    hIn = (h / 25.4).toFixed(4) + 'in';
+  } else {
+    const vbParts = origViewBox ? origViewBox.trim().split(/\s+/).map(Number) : [0,0,210,297];
+    vb  = origViewBox || '0 0 210 297';
+    wIn = (vbParts[2] / 25.4).toFixed(4) + 'in';
+    hIn = (vbParts[3] / 25.4).toFixed(4) + 'in';
+  }
 
   function extractPath(svgStr) {
     const doc = new DOMParser().parseFromString(svgStr, 'image/svg+xml');
